@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+
+    <!-- PWA / iOS homescreen -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="JARVIS">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#060a12">
+    <link rel="manifest" href="manifest.json">
+
+    <!-- iOS splash / icon placeholders (replace with real icons) -->
+    <link rel="apple-touch-icon" href="assets/icon-192.png">
+
+    <title>JARVIS · Stark Industries</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <!-- Main animation canvas -->
+    <canvas id="jarvis-canvas"></canvas>
+
+    <!-- API key warning banner -->
+    <div id="api-banner">
+        ⚠ Chiave API non configurata — modalità offline attiva.<br>
+        Aggiungi la tua chiave Anthropic in <code>js/config.js</code> per risposte AI complete.
+    </div>
+
+    <!-- Start overlay (shown on first load) -->
+    <div id="start-overlay">
+        <h1>JARVIS</h1>
+        <p>
+            J.U.S.T &nbsp;A &nbsp;R.A.T.H.E.R &nbsp;V.E.R.Y &nbsp;I.N.T.E.L.L.I.G.E.N.T &nbsp;S.Y.S.T.E.M<br>
+            <span style="color:rgba(0,150,255,0.5); font-size:0.85em">STARK INDUSTRIES · INTERFACCIA VOCALE</span>
+        </p>
+        <button id="start-btn">AVVIA SISTEMA</button>
+        <p style="font-size:0.8em; color:rgba(100,160,220,0.4)">
+            Sarà richiesto accesso al microfono
+        </p>
+    </div>
+
+    <!-- Always-visible UI layer -->
+    <div id="ui-overlay">
+        <!-- Clock positioned just below the ring -->
+        <div id="clock-container">
+            <div id="time-display">00:00:00</div>
+            <div id="date-display">LUNEDÌ 1 GEN</div>
+        </div>
+
+        <!-- Conversation display -->
+        <div id="conversation-panel">
+            <div id="transcript"></div>
+            <div id="response"></div>
+        </div>
+
+        <!-- Bottom controls -->
+        <div id="bottom-controls">
+            <button class="ctrl-btn" id="clear-btn" title="Cancella memoria">🗑</button>
+            <span id="wake-hint">Inizializzazione...</span>
+            <button class="ctrl-btn" id="mic-btn" title="Attiva microfono">
+                <span id="mic-icon">🎙</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Scripts (order matters: config → canvas → speech → claude → app) -->
+    <script src="js/config.js"></script>
+    <script src="js/canvas.js"></script>
+    <script src="js/speech.js"></script>
+    <script src="js/claude.js"></script>
+    <script src="js/jarvis.js"></script>
+</body>
+</html>
