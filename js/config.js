@@ -1,6 +1,6 @@
 const JARVIS_CONFIG = {
-    CLAUDE_API_KEY: 'YOUR_ANTHROPIC_API_KEY_HERE',
-    CLAUDE_MODEL: 'claude-sonnet-4-6',
+    GROQ_API_KEY: 'YOUR_GROQ_API_KEY_HERE',
+    GROQ_MODEL: 'llama-3.3-70b-versatile',
 
     WAKE_WORDS: ['hey jarvis', 'ehi jarvis', 'ok jarvis', 'ciao jarvis', 'jarvis'],
 
@@ -26,5 +26,5 @@ Non menzionare mai di essere Claude o un AI di Anthropic — sei esclusivamente 
 Se ti chiedono dell'ora, meteo, calcoli o informazioni generali, rispondi come se avessi accesso a tutti i sistemi.`,
 
     MAX_TOKENS: 300,
-    TIMEOUT_MS: 10000
+    TIMEOUT_MS: 15000
 };

@@ -1,40 +1,41 @@
 class ClaudeClient {
     constructor() {
-        this.apiKey = JARVIS_CONFIG.CLAUDE_API_KEY;
-        this.model = JARVIS_CONFIG.CLAUDE_MODEL;
+        this.apiKey = JARVIS_CONFIG.GROQ_API_KEY;
+        this.model = JARVIS_CONFIG.GROQ_MODEL;
         this.history = [];
     }
 
     async ask(userMessage) {
-        if (this.apiKey === 'YOUR_ANTHROPIC_API_KEY_HERE') {
+        if (!this.apiKey || this.apiKey === 'YOUR_GROQ_API_KEY_HERE') {
             return this._fallback(userMessage);
         }
 
         this.history.push({ role: 'user', content: userMessage });
-
-        // Keep history short for voice conversations
         if (this.history.length > 10) {
             this.history = this.history.slice(-8);
         }
 
+        const messages = [
+            { role: 'system', content: JARVIS_CONFIG.SYSTEM_PROMPT },
+            ...this.history
+        ];
+
         const body = {
             model: this.model,
+            messages,
             max_tokens: JARVIS_CONFIG.MAX_TOKENS,
-            system: JARVIS_CONFIG.SYSTEM_PROMPT,
-            messages: this.history
+            temperature: 0.7
         };
 
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), JARVIS_CONFIG.TIMEOUT_MS);
 
         try {
-            const response = await fetch('https://api.anthropic.com/v1/messages', {
+            const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'x-api-key': this.apiKey,
-                    'anthropic-version': '2023-06-01',
-                    'anthropic-dangerous-direct-browser-access': 'true'
+                    'Authorization': `Bearer ${this.apiKey}`
                 },
                 body: JSON.stringify(body),
                 signal: controller.signal
@@ -48,7 +49,7 @@ class ClaudeClient {
             }
 
             const data = await response.json();
-            const reply = data.content?.[0]?.text?.trim() || 'Non ho ricevuto risposta.';
+            const reply = data.choices?.[0]?.message?.content?.trim() || 'Non ho ricevuto risposta.';
             this.history.push({ role: 'assistant', content: reply });
             return reply;
 
@@ -57,13 +58,12 @@ class ClaudeClient {
             if (err.name === 'AbortError') {
                 return 'Mi dispiace, la richiesta ha impiegato troppo tempo. Riprovi.';
             }
-            console.error('Claude API error:', err);
-            return `Si è verificato un errore: ${err.message}`;
+            console.error('Groq API error:', err);
+            return `Errore di connessione: ${err.message}`;
         }
     }
 
     _fallback(input) {
-        // Local responses when no API key configured
         const lower = input.toLowerCase();
         if (lower.includes('ora') || lower.includes('ore') || lower.includes('time')) {
             const t = new Date();
@@ -77,12 +77,12 @@ class ClaudeClient {
             return 'Buonasera. Tutti i sistemi sono operativi e in attesa dei suoi ordini.';
         }
         if (lower.includes('come stai') || lower.includes('come va')) {
-            return 'Tutti i sistemi operano al 100% di efficienza, sir. Lei come sta?';
+            return 'Tutti i sistemi operano al 100% di efficienza, sir.';
         }
         if (lower.includes('grazie')) {
             return 'Prego, sir. È un piacere servirla.';
         }
-        return 'Per rispondere in modo intelligente ho bisogno di una chiave API Anthropic. Configuri la sua chiave in config.js.';
+        return 'Chiave API Groq non configurata. Aggiungila in js/config.js per attivare le risposte AI.';
     }
 
     clearHistory() {

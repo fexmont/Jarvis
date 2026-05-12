@@ -183,7 +183,7 @@ class JarvisApp {
     }
 
     _checkApiKey() {
-        if (JARVIS_CONFIG.CLAUDE_API_KEY === 'YOUR_ANTHROPIC_API_KEY_HERE') {
+        if (!JARVIS_CONFIG.GROQ_API_KEY || JARVIS_CONFIG.GROQ_API_KEY === 'YOUR_GROQ_API_KEY_HERE') {
             const banner = document.getElementById('api-banner');
             if (banner) banner.style.display = 'flex';
         }
