@@ -85,6 +85,10 @@ class ClaudeClient {
         return 'Chiave API Groq non configurata. Aggiungila in js/config.js per attivare le risposte AI.';
     }
 
+    setKey(key) {
+        this.apiKey = key;
+    }
+
     clearHistory() {
         this.history = [];
     }

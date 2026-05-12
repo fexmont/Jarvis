@@ -29,6 +29,114 @@ html, body {
     cursor: pointer;
 }
 
+/* ── Settings overlay ──────────────────────────── */
+#settings-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(6, 10, 18, 0.95);
+    z-index: 200;
+    padding: 20px;
+}
+#settings-overlay.hidden { display: none; }
+
+#settings-box {
+    border: 1px solid var(--blue-dim);
+    padding: clamp(24px, 5vw, 40px);
+    max-width: 460px;
+    width: 100%;
+    background: rgba(0, 20, 50, 0.6);
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    box-shadow: 0 0 40px rgba(0, 100, 255, 0.15);
+}
+#settings-box h2 {
+    font-size: clamp(14px, 3vw, 18px);
+    letter-spacing: 6px;
+    color: #fff;
+    text-shadow: 0 0 14px var(--blue);
+    text-align: center;
+}
+#settings-box p {
+    color: var(--text-dim);
+    font-size: clamp(11px, 2.2vw, 13px);
+    letter-spacing: 1px;
+    line-height: 1.7;
+    text-align: center;
+}
+#settings-field {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+#settings-field label {
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--blue);
+}
+#api-key-input {
+    background: rgba(0, 30, 70, 0.8);
+    border: 1px solid var(--blue-dim);
+    color: #fff;
+    padding: 14px 44px 14px 14px;
+    font-family: inherit;
+    font-size: clamp(12px, 2.5vw, 14px);
+    letter-spacing: 1px;
+    outline: none;
+    width: 100%;
+    -webkit-user-select: text; user-select: text;
+}
+#api-key-input:focus { border-color: var(--blue); box-shadow: var(--glow); }
+#toggle-key-btn {
+    position: absolute;
+    right: 10px; bottom: 10px;
+    background: none; border: none;
+    cursor: pointer; font-size: 18px; opacity: 0.5;
+}
+#settings-hint strong {
+    color: var(--blue);
+    display: block;
+    margin-top: 4px;
+    font-size: 1.1em;
+}
+#settings-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+#save-key-btn {
+    background: rgba(0, 120, 255, 0.2);
+    border: 1.5px solid var(--blue);
+    color: #fff;
+    padding: 14px;
+    font-family: inherit;
+    font-size: clamp(12px, 2.5vw, 14px);
+    letter-spacing: 4px;
+    cursor: pointer;
+    text-transform: uppercase;
+    box-shadow: var(--glow);
+    transition: all 0.2s;
+}
+#save-key-btn:hover, #save-key-btn:active {
+    background: rgba(0, 150, 255, 0.3);
+    box-shadow: 0 0 24px rgba(0, 150, 255, 0.6);
+}
+#skip-key-btn {
+    background: none;
+    border: 1px solid rgba(100, 150, 200, 0.2);
+    color: var(--text-dim);
+    padding: 10px;
+    font-family: inherit;
+    font-size: clamp(10px, 2vw, 11px);
+    letter-spacing: 2px;
+    cursor: pointer;
+    text-transform: uppercase;
+}
+
 /* ── Start overlay ─────────────────────────────── */
 #start-overlay {
     position: fixed;
@@ -76,6 +184,16 @@ html, body {
 #start-btn:hover, #start-btn:active {
     background: rgba(0, 150, 255, 0.1);
     box-shadow: 0 0 24px rgba(0, 150, 255, 0.7), inset 0 0 20px rgba(0, 150, 255, 0.15);
+}
+#change-key-btn {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-family: inherit;
+    font-size: clamp(10px, 2vw, 12px);
+    letter-spacing: 2px;
+    cursor: pointer;
+    padding: 6px;
 }
 
 /* ── UI overlay (always visible after start) ───── */

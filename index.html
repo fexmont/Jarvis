@@ -23,13 +23,28 @@
     <!-- Main animation canvas -->
     <canvas id="jarvis-canvas"></canvas>
 
-    <!-- API key warning banner -->
-    <div id="api-banner">
-        ⚠ Chiave Groq non configurata — modalità offline attiva.<br>
-        Aggiungi la tua chiave in <code>GROQ_API_KEY</code> dentro <code>js/config.js</code>
+    <!-- Settings overlay (shown when no API key saved) -->
+    <div id="settings-overlay">
+        <div id="settings-box">
+            <h2>CONFIGURAZIONE</h2>
+            <p>Inserisci la tua chiave API Groq.<br>Viene salvata solo su questo dispositivo.</p>
+            <div id="settings-field">
+                <label>GROQ API KEY</label>
+                <input type="password" id="api-key-input" placeholder="gsk_xxxxxxxxxxxxxxxx" autocomplete="off" autocorrect="off" spellcheck="false">
+                <button id="toggle-key-btn" type="button">👁</button>
+            </div>
+            <p id="settings-hint">
+                Ottieni la chiave gratis su<br>
+                <strong>console.groq.com</strong> → API Keys → Create
+            </p>
+            <div id="settings-actions">
+                <button id="save-key-btn">SALVA E AVVIA</button>
+                <button id="skip-key-btn">SALTA (modalità offline)</button>
+            </div>
+        </div>
     </div>
 
-    <!-- Start overlay (shown on first load) -->
+    <!-- Start overlay (shown on first load when key already saved) -->
     <div id="start-overlay">
         <h1>JARVIS</h1>
         <p>
@@ -37,9 +52,7 @@
             <span style="color:rgba(0,150,255,0.5); font-size:0.85em">STARK INDUSTRIES · INTERFACCIA VOCALE</span>
         </p>
         <button id="start-btn">AVVIA SISTEMA</button>
-        <p style="font-size:0.8em; color:rgba(100,160,220,0.4)">
-            Sarà richiesto accesso al microfono
-        </p>
+        <button id="change-key-btn">⚙ Cambia chiave API</button>
     </div>
 
     <!-- Always-visible UI layer -->
@@ -63,6 +76,7 @@
             <button class="ctrl-btn" id="mic-btn" title="Attiva microfono">
                 <span id="mic-icon">🎙</span>
             </button>
+            <button class="ctrl-btn" id="settings-btn" title="Impostazioni">⚙</button>
         </div>
     </div>
 
