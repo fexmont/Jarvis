@@ -6,7 +6,6 @@ class JarvisApp {
 
         this.state = 'idle';
         this.initialized = false;
-        this.greetingIndex = 0;
 
         this._startClock();
         this._bindSettings();
@@ -17,8 +16,10 @@ class JarvisApp {
     _bootSequence() {
         const groqKey   = localStorage.getItem('jarvis_groq_key');
         const elevenKey = localStorage.getItem('jarvis_eleven_key');
+        const userName  = localStorage.getItem('jarvis_user_name') || '';
         if (groqKey)   this.claude.setKey(groqKey);
         if (elevenKey) this.speech.elevenLabsKey = elevenKey;
+        if (userName)  this.claude.setUserName(userName);
         if (groqKey) {
             this._showStartOverlay();
         } else {
@@ -31,6 +32,9 @@ class JarvisApp {
         document.getElementById('settings-overlay').classList.remove('hidden');
         document.getElementById('start-overlay').classList.add('hidden');
         if (prefill) document.getElementById('api-key-input').value = prefill;
+        const savedName = localStorage.getItem('jarvis_user_name') || '';
+        const nameEl = document.getElementById('user-name-input');
+        if (nameEl && savedName) nameEl.value = savedName;
     }
 
     _hideSettingsOverlay() {
@@ -38,13 +42,11 @@ class JarvisApp {
     }
 
     _bindSettings() {
-        // Toggle password visibility
         document.getElementById('toggle-key-btn').addEventListener('click', () => {
             const inp = document.getElementById('api-key-input');
             inp.type = inp.type === 'password' ? 'text' : 'password';
         });
 
-        // Save key
         document.getElementById('save-key-btn').addEventListener('click', () => {
             const key = document.getElementById('api-key-input').value.trim();
             if (!key || !key.startsWith('gsk_')) {
@@ -59,24 +61,26 @@ class JarvisApp {
                 localStorage.setItem('jarvis_eleven_key', elKey.trim());
                 this.speech.elevenLabsKey = elKey.trim();
             }
+            const userName = (document.getElementById('user-name-input') || {}).value || '';
+            if (userName.trim()) {
+                localStorage.setItem('jarvis_user_name', userName.trim());
+                this.claude.setUserName(userName.trim());
+            }
             this._hideSettingsOverlay();
             this._showStartOverlay();
         });
 
-        // Skip (offline mode)
         document.getElementById('skip-key-btn').addEventListener('click', () => {
             this._hideSettingsOverlay();
             this._showStartOverlay();
         });
 
-        // Change key button (visible on start overlay)
         document.getElementById('change-key-btn').addEventListener('click', () => {
             const existing = localStorage.getItem('jarvis_groq_key') || '';
             document.getElementById('start-overlay').classList.add('hidden');
             this._showSettingsOverlay(existing);
         });
 
-        // Settings gear button (visible during use)
         document.getElementById('settings-btn').addEventListener('click', () => {
             const existing = localStorage.getItem('jarvis_groq_key') || '';
             this.speech.stop();
@@ -85,13 +89,11 @@ class JarvisApp {
             this.initialized = false;
         });
 
-        // Start button
         document.getElementById('start-btn').addEventListener('click', () => {
             document.getElementById('start-overlay').classList.add('hidden');
             this._initialize();
         });
 
-        // Tap canvas to start
         document.getElementById('jarvis-canvas').addEventListener('click', () => {
             if (!this.initialized) return;
             if (this.state === 'idle') this._activateListening();
@@ -105,7 +107,7 @@ class JarvisApp {
         document.getElementById('clear-btn').addEventListener('click', () => {
             this.claude.clearHistory();
             this._setTranscript('');
-            this._setResponse('Memoria cancellata, sir.');
+            this._setResponse('Memoria cancellata.');
         });
     }
 
@@ -142,7 +144,10 @@ class JarvisApp {
         document.getElementById('clear-btn').style.display = 'flex';
         document.getElementById('settings-btn').style.display = 'flex';
 
-        const greeting = 'Sistemi online. JARVIS pronto ai suoi ordini, sir.';
+        const name = this.claude.userName;
+        const greeting = name
+            ? `Sistemi online. Ciao ${name}, sono pronto.`
+            : 'Sistemi online. JARVIS pronto ai suoi ordini.';
         this._setResponse(greeting);
         this._setState('speaking');
         this.speech.speak(greeting, () => this._setState('idle'));
@@ -153,18 +158,15 @@ class JarvisApp {
         if (this.state === 'speaking') this.speech.stopSpeaking();
         this._setState('listening');
         document.getElementById('wake-hint').textContent = 'In ascolto...';
+        this._setResponse('Dimmi.');
 
-        const g = JARVIS_CONFIG.GREETING_RESPONSES[this.greetingIndex % JARVIS_CONFIG.GREETING_RESPONSES.length];
-        this.greetingIndex++;
-        this._setResponse(g);
-
-        // Stop recognition while speaking greeting, then restart and wait for user input
+        // Say a very short ack then immediately listen — Alexa-style
         this.speech.stop();
-        this.speech.speak(g, () => {
+        this.speech.speak('Dimmi.', () => {
             setTimeout(() => {
                 this.speech.isActive = true;
                 this.speech.start();
-            }, 300);
+            }, 150);
         });
     }
 
@@ -172,6 +174,7 @@ class JarvisApp {
         this.speech.resetWakeWord();
         this._setState('idle');
         document.getElementById('wake-hint').textContent = 'Di\' "Hey Jarvis" per iniziare';
+        setTimeout(() => this.speech.start(), 150);
     }
 
     async _handleCommand(text) {
@@ -180,7 +183,6 @@ class JarvisApp {
         this._setState('processing');
         document.getElementById('wake-hint').textContent = 'Elaborazione...';
 
-        // Stop recognition while processing and speaking to avoid self-feedback
         this.speech.stop();
 
         const reply = await this.claude.ask(text);
@@ -191,7 +193,6 @@ class JarvisApp {
         this.speech.speak(reply, () => {
             this._setState('idle');
             document.getElementById('wake-hint').textContent = 'Di\' "Hey Jarvis" per iniziare';
-            // Restart passive listening for wake word after speaking
             setTimeout(() => this.speech.start(), 300);
         });
     }

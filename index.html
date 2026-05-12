@@ -12,7 +12,6 @@
     <meta name="theme-color" content="#060a12">
     <link rel="manifest" href="manifest.json">
 
-    <!-- iOS splash / icon placeholders (replace with real icons) -->
     <link rel="apple-touch-icon" href="assets/icon-192.png">
 
     <title>JARVIS · Stark Industries</title>
@@ -20,14 +19,17 @@
 </head>
 <body>
 
-    <!-- Main animation canvas -->
     <canvas id="jarvis-canvas"></canvas>
 
-    <!-- Settings overlay (shown when no API key saved) -->
+    <!-- Settings overlay -->
     <div id="settings-overlay">
         <div id="settings-box">
             <h2>CONFIGURAZIONE</h2>
             <p>Inserisci la tua chiave API Groq.<br>Viene salvata solo su questo dispositivo.</p>
+            <div id="settings-field" style="margin-bottom:10px">
+                <label>COME TI CHIAMI?</label>
+                <input type="text" id="user-name-input" placeholder="Es: Marco" autocomplete="off" autocorrect="off" spellcheck="false" style="letter-spacing:normal">
+            </div>
             <div id="settings-field">
                 <label>GROQ API KEY</label>
                 <input type="password" id="api-key-input" placeholder="gsk_xxxxxxxxxxxxxxxx" autocomplete="off" autocorrect="off" spellcheck="false">
@@ -51,7 +53,7 @@
         </div>
     </div>
 
-    <!-- Start overlay (shown on first load when key already saved) -->
+    <!-- Start overlay -->
     <div id="start-overlay">
         <h1>JARVIS</h1>
         <p>
@@ -64,19 +66,16 @@
 
     <!-- Always-visible UI layer -->
     <div id="ui-overlay">
-        <!-- Clock positioned just below the ring -->
         <div id="clock-container">
             <div id="time-display">00:00:00</div>
             <div id="date-display">LUNEDÌ 1 GEN</div>
         </div>
 
-        <!-- Conversation display -->
         <div id="conversation-panel">
             <div id="transcript"></div>
             <div id="response"></div>
         </div>
 
-        <!-- Bottom controls -->
         <div id="bottom-controls">
             <button class="ctrl-btn" id="clear-btn" title="Cancella memoria">🗑</button>
             <span id="wake-hint">Inizializzazione...</span>
@@ -87,7 +86,6 @@
         </div>
     </div>
 
-    <!-- Scripts (order matters: config → canvas → speech → claude → app) -->
     <script src="js/config.js"></script>
     <script src="js/canvas.js"></script>
     <script src="js/speech.js"></script>

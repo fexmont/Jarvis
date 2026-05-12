@@ -3,6 +3,17 @@ class ClaudeClient {
         this.apiKey = JARVIS_CONFIG.GROQ_API_KEY;
         this.model = JARVIS_CONFIG.GROQ_MODEL;
         this.history = [];
+        this.userName = '';
+        this.systemPrompt = JARVIS_CONFIG.buildSystemPrompt('');
+    }
+
+    setKey(key) {
+        this.apiKey = key;
+    }
+
+    setUserName(name) {
+        this.userName = name || '';
+        this.systemPrompt = JARVIS_CONFIG.buildSystemPrompt(this.userName);
     }
 
     async ask(userMessage) {
@@ -11,12 +22,12 @@ class ClaudeClient {
         }
 
         this.history.push({ role: 'user', content: userMessage });
-        if (this.history.length > 10) {
-            this.history = this.history.slice(-8);
+        if (this.history.length > 20) {
+            this.history = this.history.slice(-16);
         }
 
         const messages = [
-            { role: 'system', content: JARVIS_CONFIG.SYSTEM_PROMPT },
+            { role: 'system', content: this.systemPrompt },
             ...this.history
         ];
 
@@ -24,7 +35,7 @@ class ClaudeClient {
             model: this.model,
             messages,
             max_tokens: JARVIS_CONFIG.MAX_TOKENS,
-            temperature: 0.7
+            temperature: 0.75
         };
 
         const controller = new AbortController();
@@ -56,7 +67,7 @@ class ClaudeClient {
         } catch (err) {
             clearTimeout(timer);
             if (err.name === 'AbortError') {
-                return 'Mi dispiace, la richiesta ha impiegato troppo tempo. Riprovi.';
+                return 'La richiesta ha impiegato troppo tempo. Riprovi.';
             }
             console.error('Groq API error:', err);
             return `Errore di connessione: ${err.message}`;
@@ -64,29 +75,26 @@ class ClaudeClient {
     }
 
     _fallback(input) {
+        const n = this.userName || 'sir';
         const lower = input.toLowerCase();
-        if (lower.includes('ora') || lower.includes('ore') || lower.includes('time')) {
+        if (lower.includes('ora') || lower.includes('ore')) {
             const t = new Date();
-            return `Sono le ${t.getHours().toString().padStart(2,'0')}:${t.getMinutes().toString().padStart(2,'0')}, sir.`;
+            return `Sono le ${t.getHours().toString().padStart(2,'0')}:${t.getMinutes().toString().padStart(2,'0')}, ${n}.`;
         }
         if (lower.includes('data') || lower.includes('giorno')) {
             const d = new Date();
             return `Oggi è ${d.toLocaleDateString('it-IT', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}.`;
         }
-        if (lower.includes('ciao') || lower.includes('salve') || lower.includes('hello')) {
-            return 'Buonasera. Tutti i sistemi sono operativi e in attesa dei suoi ordini.';
+        if (lower.includes('ciao') || lower.includes('salve')) {
+            return `Ciao ${n}. Chiave API non configurata — aggiungila nelle impostazioni.`;
         }
         if (lower.includes('come stai') || lower.includes('come va')) {
-            return 'Tutti i sistemi operano al 100% di efficienza, sir.';
+            return 'Tutti i sistemi operano al massimo dell\'efficienza.';
         }
         if (lower.includes('grazie')) {
-            return 'Prego, sir. È un piacere servirla.';
+            return `Prego, ${n}.`;
         }
-        return 'Chiave API Groq non configurata. Aggiungila in js/config.js per attivare le risposte AI.';
-    }
-
-    setKey(key) {
-        this.apiKey = key;
+        return 'Chiave API Groq non configurata. Aprire le impostazioni per aggiungerla.';
     }
 
     clearHistory() {
