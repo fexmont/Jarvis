@@ -152,13 +152,20 @@ class JarvisApp {
     _activateListening() {
         if (this.state === 'speaking') this.speech.stopSpeaking();
         this._setState('listening');
-        this.speech.isActive = true;
         document.getElementById('wake-hint').textContent = 'In ascolto...';
 
         const g = JARVIS_CONFIG.GREETING_RESPONSES[this.greetingIndex % JARVIS_CONFIG.GREETING_RESPONSES.length];
         this.greetingIndex++;
         this._setResponse(g);
-        this.speech.speak(g);
+
+        // Stop recognition while speaking greeting, then restart and wait for user input
+        this.speech.stop();
+        this.speech.speak(g, () => {
+            setTimeout(() => {
+                this.speech.isActive = true;
+                this.speech.start();
+            }, 300);
+        });
     }
 
     _cancelListening() {
@@ -173,6 +180,9 @@ class JarvisApp {
         this._setState('processing');
         document.getElementById('wake-hint').textContent = 'Elaborazione...';
 
+        // Stop recognition while processing and speaking to avoid self-feedback
+        this.speech.stop();
+
         const reply = await this.claude.ask(text);
 
         this._setResponse(reply);
@@ -181,6 +191,8 @@ class JarvisApp {
         this.speech.speak(reply, () => {
             this._setState('idle');
             document.getElementById('wake-hint').textContent = 'Di\' "Hey Jarvis" per iniziare';
+            // Restart passive listening for wake word after speaking
+            setTimeout(() => this.speech.start(), 300);
         });
     }
 
