@@ -9,7 +9,8 @@ class JarvisCanvas {
         this.pulses = [];
         this.particles = [];
         this.scanLines = [];
-        this.waveformData = new Array(32).fill(0);
+        this.waveformData = new Array(64).fill(0);
+        this.frequencyData = null;
         this.rippleActive = false;
 
         this.resize();
@@ -44,12 +45,25 @@ class JarvisCanvas {
         this.targetAudioLevel = Math.min(1, level);
     }
 
+    setFrequencyData(data) {
+        this.frequencyData = data;
+    }
+
     updateWaveform() {
-        for (let i = 0; i < this.waveformData.length; i++) {
-            const target = this.state === 'speaking' || this.state === 'listening'
-                ? Math.random() * this.audioLevel
-                : 0;
-            this.waveformData[i] += (target - this.waveformData[i]) * 0.3;
+        const bars = this.waveformData.length;
+        for (let i = 0; i < bars; i++) {
+            let target = 0;
+            if (this.state === 'listening') {
+                if (this.frequencyData && this.frequencyData.length) {
+                    const bin = Math.floor((i / bars) * this.frequencyData.length);
+                    target = (this.frequencyData[bin] || 0) / 255;
+                } else {
+                    target = Math.random() * this.audioLevel;
+                }
+            } else if (this.state === 'speaking') {
+                target = 0.25 + 0.35 * Math.abs(Math.sin(this.frame * 0.09 + i * 0.45));
+            }
+            this.waveformData[i] += (target - this.waveformData[i]) * 0.28;
         }
     }
 
@@ -249,26 +263,28 @@ class JarvisCanvas {
     drawWaveform() {
         if (this.state !== 'listening' && this.state !== 'speaking') return;
         const { ctx, cx, cy } = this;
-        const r = this.radius * 0.62;
+        const r = this.radius;
         const bars = this.waveformData.length;
+        const isListening = this.state === 'listening';
 
         ctx.save();
         ctx.translate(cx, cy);
-        ctx.shadowBlur = 8;
-        ctx.shadowColor = this.state === 'speaking' ? '#00ffcc' : '#00aaff';
+        ctx.lineWidth = 2.5;
+        ctx.shadowBlur = 14;
+        ctx.shadowColor = isListening ? '#00ff99' : '#00ccff';
 
         for (let i = 0; i < bars; i++) {
             const angle = (i / bars) * Math.PI * 2 - Math.PI / 2;
-            const barH = this.waveformData[i] * 18 + 2;
-            const x1 = Math.cos(angle) * (r - barH);
-            const y1 = Math.sin(angle) * (r - barH);
-            const x2 = Math.cos(angle) * r;
-            const y2 = Math.sin(angle) * r;
-            const alpha = 0.4 + this.waveformData[i] * 0.6;
-            ctx.strokeStyle = this.state === 'speaking'
-                ? `rgba(0, 255, 180, ${alpha})`
-                : `rgba(0, 180, 255, ${alpha})`;
-            ctx.lineWidth = 1.5;
+            const val   = this.waveformData[i];
+            const barH  = Math.max(3, val * 60);
+            const alpha = 0.3 + val * 0.7;
+            const x1 = Math.cos(angle) * (r + 5);
+            const y1 = Math.sin(angle) * (r + 5);
+            const x2 = Math.cos(angle) * (r + 5 + barH);
+            const y2 = Math.sin(angle) * (r + 5 + barH);
+            ctx.strokeStyle = isListening
+                ? 'rgba(0, 255, 140, ' + alpha + ')'
+                : 'rgba(0, 210, 255, ' + alpha + ')';
             ctx.beginPath();
             ctx.moveTo(x1, y1);
             ctx.lineTo(x2, y2);

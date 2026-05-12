@@ -15,9 +15,11 @@ class JarvisApp {
 
     // ── Boot: decide which overlay to show first ────────────────────────
     _bootSequence() {
-        const saved = localStorage.getItem('jarvis_groq_key');
-        if (saved) {
-            this.claude.setKey(saved);
+        const groqKey   = localStorage.getItem('jarvis_groq_key');
+        const elevenKey = localStorage.getItem('jarvis_eleven_key');
+        if (groqKey)   this.claude.setKey(groqKey);
+        if (elevenKey) this.speech.elevenLabsKey = elevenKey;
+        if (groqKey) {
             this._showStartOverlay();
         } else {
             this._showSettingsOverlay();
@@ -52,6 +54,11 @@ class JarvisApp {
             }
             localStorage.setItem('jarvis_groq_key', key);
             this.claude.setKey(key);
+            const elKey = (document.getElementById('eleven-key-input') || {}).value || '';
+            if (elKey.trim()) {
+                localStorage.setItem('jarvis_eleven_key', elKey.trim());
+                this.speech.elevenLabsKey = elKey.trim();
+            }
             this._hideSettingsOverlay();
             this._showStartOverlay();
         });
@@ -111,6 +118,7 @@ class JarvisApp {
         this.speech.onWakeWord = () => this._activateListening();
         this.speech.onTranscript = (text) => this._handleCommand(text);
         this.speech.onAudioLevel = (level) => this.canvas.setAudioLevel(level);
+        this.speech.onFrequencyData = (data) => this.canvas.setFrequencyData(data);
         this.speech.onEnd = (reason) => {
             if (reason === 'permission-denied') {
                 this._setResponse('Accesso al microfono negato. Abilitalo nelle impostazioni di Safari.');
