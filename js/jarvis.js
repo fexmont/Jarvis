@@ -17,8 +17,10 @@ class JarvisApp {
     _bootSequence() {
         const groqKey   = localStorage.getItem('jarvis_groq_key');
         const elevenKey = localStorage.getItem('jarvis_eleven_key');
+        const userName  = localStorage.getItem('jarvis_user_name') || '';
         if (groqKey)   this.claude.setKey(groqKey);
         if (elevenKey) this.speech.elevenLabsKey = elevenKey;
+        if (userName)  this.claude.setUserName(userName);
         if (groqKey) {
             this._showStartOverlay();
         } else {
@@ -31,6 +33,9 @@ class JarvisApp {
         document.getElementById('settings-overlay').classList.remove('hidden');
         document.getElementById('start-overlay').classList.add('hidden');
         if (prefill) document.getElementById('api-key-input').value = prefill;
+        const savedName = localStorage.getItem('jarvis_user_name') || '';
+        const nameEl = document.getElementById('user-name-input');
+        if (nameEl && savedName) nameEl.value = savedName;
     }
 
     _hideSettingsOverlay() {
@@ -58,6 +63,11 @@ class JarvisApp {
             if (elKey.trim()) {
                 localStorage.setItem('jarvis_eleven_key', elKey.trim());
                 this.speech.elevenLabsKey = elKey.trim();
+            }
+            const userName = (document.getElementById('user-name-input') || {}).value || '';
+            if (userName.trim()) {
+                localStorage.setItem('jarvis_user_name', userName.trim());
+                this.claude.setUserName(userName.trim());
             }
             this._hideSettingsOverlay();
             this._showStartOverlay();
@@ -153,18 +163,15 @@ class JarvisApp {
         if (this.state === 'speaking') this.speech.stopSpeaking();
         this._setState('listening');
         document.getElementById('wake-hint').textContent = 'In ascolto...';
+        this._setResponse('Dimmi.');
 
-        const g = JARVIS_CONFIG.GREETING_RESPONSES[this.greetingIndex % JARVIS_CONFIG.GREETING_RESPONSES.length];
-        this.greetingIndex++;
-        this._setResponse(g);
-
-        // Stop recognition while speaking greeting, then restart and wait for user input
+        // Stop recognition while speaking the short ack, then immediately listen
         this.speech.stop();
-        this.speech.speak(g, () => {
+        this.speech.speak('Dimmi.', () => {
             setTimeout(() => {
                 this.speech.isActive = true;
                 this.speech.start();
-            }, 300);
+            }, 150);
         });
     }
 
