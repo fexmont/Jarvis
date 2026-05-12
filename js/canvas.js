@@ -430,18 +430,13 @@ class JarvisCanvas {
         const W = canvas.width;
         const H = canvas.height;
         const c = this._sc();
-        const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
-        const hh = Math.floor(elapsed / 3600).toString().padStart(2,'0');
-        const mm = Math.floor((elapsed % 3600) / 60).toString().padStart(2,'0');
-        const ss = (elapsed % 60).toString().padStart(2,'0');
         const lineColor = c.ring + '0.40)';
-        const textColor = c.ring + '0.45)';
+        const textColor = c.ring + '0.42)';
         const cl = 44;
 
         ctx.strokeStyle = lineColor;
         ctx.lineWidth   = 1.5;
 
-        // Corner brackets
         [[20, 20, 1, 1], [W-20, 20, -1, 1], [20, H-20, 1, -1], [W-20, H-20, -1, -1]].forEach(([x, y, sx, sy]) => {
             ctx.beginPath();
             ctx.moveTo(x, y + sy * cl); ctx.lineTo(x, y); ctx.lineTo(x + sx * cl, y);
@@ -451,23 +446,11 @@ class JarvisCanvas {
         ctx.font = '10px "Courier New", monospace';
         ctx.fillStyle = textColor;
 
-        // Bottom labels
         ctx.textAlign = 'left';
         ctx.fillText('JARVIS v3.1  ·  STARK INDUSTRIES', 28, H - 28);
 
-        // Top center
         ctx.textAlign = 'center';
-        ctx.fillText('J.A.R.V.I.S  ·  VOICE INTERFACE', cx, 32);
-
-        // Top-left HUD tags
-        ctx.textAlign = 'left';
-        ctx.fillText('NEURAL LINK: ACTIVE', 28, 22);
-        ctx.fillText(`UPTIME: ${hh}:${mm}:${ss}`, 28, 36);
-
-        // Top-right HUD tags
-        ctx.textAlign = 'right';
-        ctx.fillText('ENCRYPTION: AES-256', W - 28, 22);
-        ctx.fillText('POWER: OPTIMAL', W - 28, 36);
+        ctx.fillText('J.A.R.V.I.S  ·  VOICE INTERFACE', cx, 28);
     }
 
     animate() {

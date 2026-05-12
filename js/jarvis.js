@@ -6,14 +6,11 @@ class JarvisApp {
 
         this.state = 'idle';
         this.initialized = false;
-        this.greetingIndex = 0;
 
-        this._startClock();
         this._bindSettings();
         this._bootSequence();
     }
 
-    // ── Boot: decide which overlay to show first ────────────────────────
     _bootSequence() {
         const groqKey   = localStorage.getItem('jarvis_groq_key');
         const elevenKey = localStorage.getItem('jarvis_eleven_key');
@@ -28,7 +25,6 @@ class JarvisApp {
         }
     }
 
-    // ── Settings overlay ────────────────────────────────────────────────
     _showSettingsOverlay(prefill) {
         document.getElementById('settings-overlay').classList.remove('hidden');
         document.getElementById('start-overlay').classList.add('hidden');
@@ -42,14 +38,16 @@ class JarvisApp {
         document.getElementById('settings-overlay').classList.add('hidden');
     }
 
+    _showStartOverlay() {
+        document.getElementById('start-overlay').classList.remove('hidden');
+    }
+
     _bindSettings() {
-        // Toggle password visibility
         document.getElementById('toggle-key-btn').addEventListener('click', () => {
             const inp = document.getElementById('api-key-input');
             inp.type = inp.type === 'password' ? 'text' : 'password';
         });
 
-        // Save key
         document.getElementById('save-key-btn').addEventListener('click', () => {
             const key = document.getElementById('api-key-input').value.trim();
             if (!key || !key.startsWith('gsk_')) {
@@ -73,20 +71,17 @@ class JarvisApp {
             this._showStartOverlay();
         });
 
-        // Skip (offline mode)
         document.getElementById('skip-key-btn').addEventListener('click', () => {
             this._hideSettingsOverlay();
             this._showStartOverlay();
         });
 
-        // Change key button (visible on start overlay)
         document.getElementById('change-key-btn').addEventListener('click', () => {
             const existing = localStorage.getItem('jarvis_groq_key') || '';
             document.getElementById('start-overlay').classList.add('hidden');
             this._showSettingsOverlay(existing);
         });
 
-        // Settings gear button (visible during use)
         document.getElementById('settings-btn').addEventListener('click', () => {
             const existing = localStorage.getItem('jarvis_groq_key') || '';
             this.speech.stop();
@@ -95,13 +90,11 @@ class JarvisApp {
             this.initialized = false;
         });
 
-        // Start button
         document.getElementById('start-btn').addEventListener('click', () => {
             document.getElementById('start-overlay').classList.add('hidden');
             this._initialize();
         });
 
-        // Tap canvas to start
         document.getElementById('jarvis-canvas').addEventListener('click', () => {
             if (!this.initialized) return;
             if (this.state === 'idle') this._activateListening();
@@ -115,15 +108,10 @@ class JarvisApp {
         document.getElementById('clear-btn').addEventListener('click', () => {
             this.claude.clearHistory();
             this._setTranscript('');
-            this._setResponse('Memoria cancellata, sir.');
+            this._setResponse('Memoria cancellata.');
         });
     }
 
-    _showStartOverlay() {
-        document.getElementById('start-overlay').classList.remove('hidden');
-    }
-
-    // ── Speech bindings ─────────────────────────────────────────────────
     _bindSpeech() {
         this.speech.onWakeWord = () => this._activateListening();
         this.speech.onTranscript = (text) => this._handleCommand(text);
@@ -136,10 +124,12 @@ class JarvisApp {
         };
     }
 
-    // ── Initialize after start button ───────────────────────────────────
     async _initialize() {
         if (this.initialized) return;
         this.initialized = true;
+
+        // Must call unlockAudio() here — we are still inside the start-button gesture stack
+        this.speech.unlockAudio();
 
         this._bindSpeech();
         document.getElementById('wake-hint').textContent = 'Avvio in corso...';
@@ -152,26 +142,30 @@ class JarvisApp {
         document.getElementById('clear-btn').style.display = 'flex';
         document.getElementById('settings-btn').style.display = 'flex';
 
-        const greeting = 'Sistemi online. JARVIS pronto ai suoi ordini, sir.';
+        const name = this.claude.userName;
+        const greeting = name
+            ? `Sistemi online. Ciao ${name}, sono pronto.`
+            : 'Sistemi online. JARVIS pronto ai suoi ordini.';
         this._setResponse(greeting);
         this._setState('speaking');
         this.speech.speak(greeting, () => this._setState('idle'));
     }
 
-    // ── Voice flow ──────────────────────────────────────────────────────
     _activateListening() {
         if (this.state === 'speaking') this.speech.stopSpeaking();
         this._setState('listening');
         document.getElementById('wake-hint').textContent = 'In ascolto...';
         this._setResponse('Dimmi.');
 
-        // Stop recognition while speaking the short ack, then immediately listen
         this.speech.stop();
         this.speech.speak('Dimmi.', () => {
-            setTimeout(() => {
-                this.speech.isActive = true;
-                this.speech.start();
-            }, 150);
+            // Only activate mic if still in listening state (not cancelled)
+            if (this.state === 'listening') {
+                setTimeout(() => {
+                    this.speech.isActive = true;
+                    this.speech.start();
+                }, 150);
+            }
         });
     }
 
@@ -179,6 +173,7 @@ class JarvisApp {
         this.speech.resetWakeWord();
         this._setState('idle');
         document.getElementById('wake-hint').textContent = 'Di\' "Hey Jarvis" per iniziare';
+        setTimeout(() => this.speech.start(), 150);
     }
 
     async _handleCommand(text) {
@@ -187,7 +182,6 @@ class JarvisApp {
         this._setState('processing');
         document.getElementById('wake-hint').textContent = 'Elaborazione...';
 
-        // Stop recognition while processing and speaking to avoid self-feedback
         this.speech.stop();
 
         const reply = await this.claude.ask(text);
@@ -198,16 +192,14 @@ class JarvisApp {
         this.speech.speak(reply, () => {
             this._setState('idle');
             document.getElementById('wake-hint').textContent = 'Di\' "Hey Jarvis" per iniziare';
-            // Restart passive listening for wake word after speaking
             setTimeout(() => this.speech.start(), 300);
         });
     }
 
-    // ── Helpers ─────────────────────────────────────────────────────────
     _setState(state) {
         this.state = state;
         this.canvas.setState(state);
-        const micBtn = document.getElementById('mic-btn');
+        const micBtn  = document.getElementById('mic-btn');
         const micIcon = document.getElementById('mic-icon');
         if (state === 'listening') {
             micBtn.classList.add('active');
@@ -230,23 +222,6 @@ class JarvisApp {
         el.style.opacity = '1';
         el.classList.add('flash');
         setTimeout(() => el.classList.remove('flash'), 300);
-    }
-
-    _startClock() {
-        const update = () => {
-            const now = new Date();
-            const h = now.getHours().toString().padStart(2, '0');
-            const m = now.getMinutes().toString().padStart(2, '0');
-            const s = now.getSeconds().toString().padStart(2, '0');
-            const timeEl = document.getElementById('time-display');
-            const dateEl = document.getElementById('date-display');
-            if (timeEl) timeEl.textContent = `${h}:${m}:${s}`;
-            if (dateEl) dateEl.textContent = now.toLocaleDateString('it-IT', {
-                weekday: 'short', day: 'numeric', month: 'short'
-            }).toUpperCase();
-        };
-        update();
-        setInterval(update, 1000);
     }
 
     _sleep(ms) { return new Promise(r => setTimeout(r, ms)); }

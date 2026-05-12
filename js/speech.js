@@ -18,10 +18,25 @@ class JarvisSpeech {
         this.micStream = null;
         this.levelTimer = null;
         this.elevenLabsKey = null;
-        this._elevenAudio = null;
+        this._ttsCtx = null;       // persistent AudioContext for TTS
+        this._elevenSource = null; // AudioBufferSourceNode for ElevenLabs
 
         if (this.recognition) this._configureRecognition();
         this._loadVoices();
+    }
+
+    // Call this once from a user-gesture handler to unlock audio on iOS Safari
+    unlockAudio() {
+        if (this._ttsCtx) return;
+        try {
+            this._ttsCtx = new (window.AudioContext || window.webkitAudioContext)();
+            // Play a silent buffer to fully unlock the context
+            const buf = this._ttsCtx.createBuffer(1, 1, 22050);
+            const src = this._ttsCtx.createBufferSource();
+            src.buffer = buf;
+            src.connect(this._ttsCtx.destination);
+            src.start(0);
+        } catch (_) {}
     }
 
     _configureRecognition() {
@@ -52,8 +67,8 @@ class JarvisSpeech {
             return;
         }
         if (final.trim() && this.onTranscript) {
-            this.onTranscript(final.trim());
             this.isActive = false;
+            this.onTranscript(final.trim());
         }
     }
 
@@ -155,7 +170,8 @@ class JarvisSpeech {
     }
 
     async _speakElevenLabs(text, onDone) {
-        const VOICE_ID = 'onwK4e9ZLuTAKqWW03F9'; // Daniel — deep British
+        // Adam — multilingual, natural Italian pronunciation
+        const VOICE_ID = 'pNInz6obpgDQGcFmaJgB';
         try {
             const res = await fetch('https://api.elevenlabs.io/v1/text-to-speech/' + VOICE_ID, {
                 method: 'POST',
@@ -167,24 +183,36 @@ class JarvisSpeech {
                 body: JSON.stringify({
                     text,
                     model_id: 'eleven_multilingual_v2',
-                    voice_settings: { stability: 0.55, similarity_boost: 0.75, style: 0.2 }
+                    voice_settings: { stability: 0.45, similarity_boost: 0.80, style: 0.15 }
                 })
             });
-            if (!res.ok) throw new Error('ElevenLabs ' + res.status);
-            const blob = await res.blob();
-            const url  = URL.createObjectURL(blob);
-            this._elevenAudio = new Audio(url);
-            this._elevenAudio.onended = () => { URL.revokeObjectURL(url); if (onDone) onDone(); };
-            this._elevenAudio.onerror = () => { if (onDone) onDone(); };
-            this._elevenAudio.play();
+            if (!res.ok) throw new Error('ElevenLabs HTTP ' + res.status);
+
+            const arrayBuffer = await res.arrayBuffer();
+
+            // Use persistent TTS AudioContext (unlocked on user gesture) — required for iOS Safari
+            const ctx = this._ttsCtx;
+            if (!ctx) throw new Error('AudioContext not unlocked');
+            if (ctx.state === 'suspended') await ctx.resume();
+
+            const decoded = await ctx.decodeAudioData(arrayBuffer.slice(0));
+            const source = ctx.createBufferSource();
+            source.buffer = decoded;
+            source.connect(ctx.destination);
+            source.onended = () => { this._elevenSource = null; if (onDone) onDone(); };
+            this._elevenSource = source;
+            source.start(0);
         } catch (err) {
-            console.error('ElevenLabs:', err);
+            console.error('ElevenLabs error:', err);
             this._speakWebSpeech(text, onDone);
         }
     }
 
     stopSpeaking() {
         this.synth.cancel();
-        if (this._elevenAudio) { this._elevenAudio.pause(); this._elevenAudio = null; }
+        if (this._elevenSource) {
+            try { this._elevenSource.stop(); } catch (_) {}
+            this._elevenSource = null;
+        }
     }
 }
