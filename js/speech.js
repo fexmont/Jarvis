@@ -19,7 +19,6 @@ class JarvisSpeech {
         this.levelTimer = null;
         this.elevenLabsKey = null;
         this._elevenAudio = null;
-
         if (this.recognition) this._configureRecognition();
         this._loadVoices();
     }
@@ -30,24 +29,19 @@ class JarvisSpeech {
         r.continuous = true;
         r.interimResults = true;
         r.maxAlternatives = 1;
-
         r.onresult = (e) => this._handleResult(e);
         r.onerror  = (e) => this._handleError(e);
         r.onend    = ()  => this._handleEnd();
     }
 
     _handleResult(event) {
-        let interim = '';
-        let final = '';
-
+        let interim = '', final = '';
         for (let i = event.resultIndex; i < event.results.length; i++) {
             const text = event.results[i][0].transcript.toLowerCase().trim();
             if (event.results[i].isFinal) final += text + ' ';
             else interim += text;
         }
-
         const combined = (final + interim).trim();
-
         if (!this.isActive) {
             if (JARVIS_CONFIG.WAKE_WORDS.some(w => combined.includes(w))) {
                 this.isActive = true;
@@ -55,7 +49,6 @@ class JarvisSpeech {
             }
             return;
         }
-
         if (final.trim() && this.onTranscript) {
             this.onTranscript(final.trim());
             this.isActive = false;
@@ -64,26 +57,18 @@ class JarvisSpeech {
 
     _handleError(event) {
         if (event.error === 'no-speech') return;
-        if (event.error === 'not-allowed') {
-            if (this.onEnd) this.onEnd('permission-denied');
-        }
+        if (event.error === 'not-allowed') { if (this.onEnd) this.onEnd('permission-denied'); }
     }
 
     _handleEnd() {
         this.isListening = false;
-        if (this._shouldRestart) {
-            this.restartTimer = setTimeout(() => this.start(), 300);
-        }
+        if (this._shouldRestart) this.restartTimer = setTimeout(() => this.start(), 300);
     }
 
     start() {
         if (!this.supported || this.isListening) return;
         this._shouldRestart = true;
-        try {
-            this.recognition.start();
-            this.isListening = true;
-            this._startAudioMonitor();
-        } catch (_) {}
+        try { this.recognition.start(); this.isListening = true; this._startAudioMonitor(); } catch (_) {}
     }
 
     stop() {
@@ -105,7 +90,6 @@ class JarvisSpeech {
             this.analyser = this.audioCtx.createAnalyser();
             this.analyser.fftSize = 128;
             source.connect(this.analyser);
-
             const data = new Uint8Array(this.analyser.frequencyBinCount);
             const tick = () => {
                 if (!this.analyser) return;
@@ -120,10 +104,10 @@ class JarvisSpeech {
     }
 
     _stopAudioMonitor() {
-        if (this.analyser)  { this.analyser.disconnect(); this.analyser = null; }
-        if (this.micStream) { this.micStream.getTracks().forEach(t => t.stop()); this.micStream = null; }
-        if (this.audioCtx)  { this.audioCtx.close(); this.audioCtx = null; }
-        if (this.levelTimer){ cancelAnimationFrame(this.levelTimer); this.levelTimer = null; }
+        if (this.analyser)   { this.analyser.disconnect(); this.analyser = null; }
+        if (this.micStream)  { this.micStream.getTracks().forEach(t => t.stop()); this.micStream = null; }
+        if (this.audioCtx)   { this.audioCtx.close(); this.audioCtx = null; }
+        if (this.levelTimer) { cancelAnimationFrame(this.levelTimer); this.levelTimer = null; }
     }
 
     _loadVoices() {
@@ -142,14 +126,10 @@ class JarvisSpeech {
         if (this.synth.onvoiceschanged !== undefined) this.synth.onvoiceschanged = pick;
     }
 
-    // ── Public speak: routes to ElevenLabs or WebSpeech ────────────────
     speak(text, onDone) {
         if (!text) { if (onDone) onDone(); return; }
-        if (this.elevenLabsKey) {
-            this._speakElevenLabs(text, onDone);
-        } else {
-            this._speakWebSpeech(text, onDone);
-        }
+        if (this.elevenLabsKey) this._speakElevenLabs(text, onDone);
+        else this._speakWebSpeech(text, onDone);
     }
 
     _speakWebSpeech(text, onDone) {
@@ -166,10 +146,9 @@ class JarvisSpeech {
     }
 
     async _speakElevenLabs(text, onDone) {
-        // Daniel voice — deep, British, professional
         const VOICE_ID = 'onwK4e9ZLuTAKqWW03F9';
         try {
-            const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`, {
+            const res = await fetch('https://api.elevenlabs.io/v1/text-to-speech/' + VOICE_ID, {
                 method: 'POST',
                 headers: {
                     'Accept': 'audio/mpeg',
@@ -182,7 +161,7 @@ class JarvisSpeech {
                     voice_settings: { stability: 0.55, similarity_boost: 0.75, style: 0.2 }
                 })
             });
-            if (!res.ok) throw new Error(`ElevenLabs ${res.status}`);
+            if (!res.ok) throw new Error('ElevenLabs ' + res.status);
             const blob = await res.blob();
             const url  = URL.createObjectURL(blob);
             this._elevenAudio = new Audio(url);
