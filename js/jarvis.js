@@ -122,13 +122,15 @@ class JarvisApp {
                 this._setResponse('Accesso al microfono negato. Abilitalo nelle impostazioni di Safari.');
             }
         };
+        this.speech.onElevenLabsError = (msg) => {
+            this._setResponse('ElevenLabs: ' + msg);
+        };
     }
 
     async _initialize() {
         if (this.initialized) return;
         this.initialized = true;
 
-        // Must call here — still inside the start-button user-gesture stack
         this.speech.unlockAudio();
 
         this._bindSpeech();
