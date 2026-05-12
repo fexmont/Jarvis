@@ -12,7 +12,6 @@ class JarvisCanvas {
         this.waveformData = new Array(64).fill(0);
         this.frequencyData = null;
         this.hexCanvas = null;
-        this.startTime = Date.now();
 
         this.resize();
         window.addEventListener('resize', () => this.resize());
@@ -148,9 +147,9 @@ class JarvisCanvas {
 
         const grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, this.radius * 3.8);
         const c = this._sc();
-        grd.addColorStop(0,   c.ring + '0.12)');
+        grd.addColorStop(0,    c.ring + '0.12)');
         grd.addColorStop(0.45, c.ring + '0.04)');
-        grd.addColorStop(1,   'rgba(0,0,0,0)');
+        grd.addColorStop(1,    'rgba(0,0,0,0)');
         ctx.fillStyle = grd;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -230,8 +229,7 @@ class JarvisCanvas {
         ctx.shadowColor = c.glow;
         ctx.strokeStyle = c.primary;
         ctx.lineWidth = 2.8;
-        const segments = [[0.05, 0.60], [0.72, 1.25], [1.38, 1.92]];
-        segments.forEach(([s, e]) => {
+        [[0.05, 0.60], [0.72, 1.25], [1.38, 1.92]].forEach(([s, e]) => {
             ctx.beginPath();
             ctx.arc(0, 0, r + bump * 0.18, s * Math.PI, e * Math.PI);
             ctx.stroke();
@@ -294,8 +292,7 @@ class JarvisCanvas {
             ctx.save();
             ctx.translate(dx, dy);
             ctx.rotate(angle + Math.PI / 4);
-            const s = 5;
-            ctx.fillRect(-s / 2, -s / 2, s, s);
+            ctx.fillRect(-2.5, -2.5, 5, 5);
             ctx.restore();
         }
         ctx.restore();
@@ -322,11 +319,9 @@ class JarvisCanvas {
                 for (let i = 0; i <= bars; i++) {
                     const angle = ((i % bars) / bars) * Math.PI * 2 - Math.PI / 2 + offset;
                     const val   = this.waveformData[i % bars];
-                    const barH  = val * 55;
-                    const rr    = r + 6 + barH;
-                    const x = Math.cos(angle) * rr;
-                    const y = Math.sin(angle) * rr;
-                    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+                    const rr    = r + 6 + val * 55;
+                    i === 0 ? ctx.moveTo(Math.cos(angle) * rr, Math.sin(angle) * rr)
+                            : ctx.lineTo(Math.cos(angle) * rr, Math.sin(angle) * rr);
                 }
                 ctx.closePath();
                 ctx.strokeStyle = c.ring + alpha + ')';
@@ -357,9 +352,9 @@ class JarvisCanvas {
         const c = this._sc();
 
         const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 0.68);
-        grad.addColorStop(0,   'rgba(5,18,40,0.97)');
-        grad.addColorStop(0.55,'rgba(3,12,28,0.95)');
-        grad.addColorStop(1,   'rgba(0,5,15,0.80)');
+        grad.addColorStop(0,    'rgba(5,18,40,0.97)');
+        grad.addColorStop(0.55, 'rgba(3,12,28,0.95)');
+        grad.addColorStop(1,    'rgba(0,5,15,0.80)');
         ctx.beginPath();
         ctx.arc(cx, cy, r * 0.70, 0, Math.PI * 2);
         ctx.fillStyle = grad;
@@ -394,7 +389,7 @@ class JarvisCanvas {
         ctx.restore();
 
         const stateInfo = {
-            idle:       { text: '· IN ATTESA ·',    color: c.ring + '0.55)' },
+            idle:       { text: '· IN ATTESA ·', color: c.ring + '0.55)' },
             listening:  { text: '● ASCOLTO',          color: '#00ff88' },
             processing: { text: '◈ ELABORAZIONE',     color: '#ffaa00' },
             speaking:   { text: '◆ RISPOSTA',         color: '#00ddff' }
@@ -417,12 +412,8 @@ class JarvisCanvas {
         const W = canvas.width;
         const H = canvas.height;
         const c = this._sc();
-        const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
-        const hh = Math.floor(elapsed / 3600).toString().padStart(2,'0');
-        const mm = Math.floor((elapsed % 3600) / 60).toString().padStart(2,'0');
-        const ss = (elapsed % 60).toString().padStart(2,'0');
         const lineColor = c.ring + '0.40)';
-        const textColor = c.ring + '0.45)';
+        const textColor = c.ring + '0.42)';
         const cl = 44;
 
         ctx.strokeStyle = lineColor;
@@ -441,15 +432,7 @@ class JarvisCanvas {
         ctx.fillText('JARVIS v3.1  ·  STARK INDUSTRIES', 28, H - 28);
 
         ctx.textAlign = 'center';
-        ctx.fillText('J.A.R.V.I.S  ·  VOICE INTERFACE', cx, 32);
-
-        ctx.textAlign = 'left';
-        ctx.fillText('NEURAL LINK: ACTIVE', 28, 22);
-        ctx.fillText(`UPTIME: ${hh}:${mm}:${ss}`, 28, 36);
-
-        ctx.textAlign = 'right';
-        ctx.fillText('ENCRYPTION: AES-256', W - 28, 22);
-        ctx.fillText('POWER: OPTIMAL', W - 28, 36);
+        ctx.fillText('J.A.R.V.I.S  ·  VOICE INTERFACE', cx, 28);
     }
 
     animate() {

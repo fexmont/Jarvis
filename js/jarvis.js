@@ -7,12 +7,10 @@ class JarvisApp {
         this.state = 'idle';
         this.initialized = false;
 
-        this._startClock();
         this._bindSettings();
         this._bootSequence();
     }
 
-    // ── Boot: decide which overlay to show first ────────────────────────
     _bootSequence() {
         const groqKey   = localStorage.getItem('jarvis_groq_key');
         const elevenKey = localStorage.getItem('jarvis_eleven_key');
@@ -27,7 +25,6 @@ class JarvisApp {
         }
     }
 
-    // ── Settings overlay ────────────────────────────────────────────────
     _showSettingsOverlay(prefill) {
         document.getElementById('settings-overlay').classList.remove('hidden');
         document.getElementById('start-overlay').classList.add('hidden');
@@ -39,6 +36,10 @@ class JarvisApp {
 
     _hideSettingsOverlay() {
         document.getElementById('settings-overlay').classList.add('hidden');
+    }
+
+    _showStartOverlay() {
+        document.getElementById('start-overlay').classList.remove('hidden');
     }
 
     _bindSettings() {
@@ -111,11 +112,6 @@ class JarvisApp {
         });
     }
 
-    _showStartOverlay() {
-        document.getElementById('start-overlay').classList.remove('hidden');
-    }
-
-    // ── Speech bindings ─────────────────────────────────────────────────
     _bindSpeech() {
         this.speech.onWakeWord = () => this._activateListening();
         this.speech.onTranscript = (text) => this._handleCommand(text);
@@ -128,10 +124,12 @@ class JarvisApp {
         };
     }
 
-    // ── Initialize after start button ───────────────────────────────────
     async _initialize() {
         if (this.initialized) return;
         this.initialized = true;
+
+        // Must call here — still inside the start-button user-gesture stack
+        this.speech.unlockAudio();
 
         this._bindSpeech();
         document.getElementById('wake-hint').textContent = 'Avvio in corso...';
@@ -153,20 +151,20 @@ class JarvisApp {
         this.speech.speak(greeting, () => this._setState('idle'));
     }
 
-    // ── Voice flow ──────────────────────────────────────────────────────
     _activateListening() {
         if (this.state === 'speaking') this.speech.stopSpeaking();
         this._setState('listening');
         document.getElementById('wake-hint').textContent = 'In ascolto...';
         this._setResponse('Dimmi.');
 
-        // Say a very short ack then immediately listen — Alexa-style
         this.speech.stop();
         this.speech.speak('Dimmi.', () => {
-            setTimeout(() => {
-                this.speech.isActive = true;
-                this.speech.start();
-            }, 150);
+            if (this.state === 'listening') {
+                setTimeout(() => {
+                    this.speech.isActive = true;
+                    this.speech.start();
+                }, 150);
+            }
         });
     }
 
@@ -197,11 +195,10 @@ class JarvisApp {
         });
     }
 
-    // ── Helpers ─────────────────────────────────────────────────────────
     _setState(state) {
         this.state = state;
         this.canvas.setState(state);
-        const micBtn = document.getElementById('mic-btn');
+        const micBtn  = document.getElementById('mic-btn');
         const micIcon = document.getElementById('mic-icon');
         if (state === 'listening') {
             micBtn.classList.add('active');
@@ -224,23 +221,6 @@ class JarvisApp {
         el.style.opacity = '1';
         el.classList.add('flash');
         setTimeout(() => el.classList.remove('flash'), 300);
-    }
-
-    _startClock() {
-        const update = () => {
-            const now = new Date();
-            const h = now.getHours().toString().padStart(2, '0');
-            const m = now.getMinutes().toString().padStart(2, '0');
-            const s = now.getSeconds().toString().padStart(2, '0');
-            const timeEl = document.getElementById('time-display');
-            const dateEl = document.getElementById('date-display');
-            if (timeEl) timeEl.textContent = `${h}:${m}:${s}`;
-            if (dateEl) dateEl.textContent = now.toLocaleDateString('it-IT', {
-                weekday: 'short', day: 'numeric', month: 'short'
-            }).toUpperCase();
-        };
-        update();
-        setInterval(update, 1000);
     }
 
     _sleep(ms) { return new Promise(r => setTimeout(r, ms)); }

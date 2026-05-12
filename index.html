@@ -3,17 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-
-    <!-- PWA / iOS homescreen -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="JARVIS">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#060a12">
     <link rel="manifest" href="manifest.json">
-
     <link rel="apple-touch-icon" href="assets/icon-192.png">
-
     <title>JARVIS · Stark Industries</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
@@ -21,7 +17,6 @@
 
     <canvas id="jarvis-canvas"></canvas>
 
-    <!-- Settings overlay -->
     <div id="settings-overlay">
         <div id="settings-box">
             <h2>CONFIGURAZIONE</h2>
@@ -53,7 +48,6 @@
         </div>
     </div>
 
-    <!-- Start overlay -->
     <div id="start-overlay">
         <h1>JARVIS</h1>
         <p>
@@ -64,13 +58,7 @@
         <button id="change-key-btn">⚙ Cambia chiave API</button>
     </div>
 
-    <!-- Always-visible UI layer -->
     <div id="ui-overlay">
-        <div id="clock-container">
-            <div id="time-display">00:00:00</div>
-            <div id="date-display">LUNEDÌ 1 GEN</div>
-        </div>
-
         <div id="conversation-panel">
             <div id="transcript"></div>
             <div id="response"></div>
