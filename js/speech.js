@@ -11,6 +11,7 @@ class JarvisSpeech {
         this.onAudioLevel = null;
         this.onFrequencyData = null;
         this.onEnd = null;
+        this.onElevenLabsError = null; // called if ElevenLabs fails (for UI feedback)
         this.restartTimer = null;
         this.preferredVoice = null;
         this.audioCtx = null;
@@ -18,19 +19,19 @@ class JarvisSpeech {
         this.micStream = null;
         this.levelTimer = null;
         this.elevenLabsKey = null;
-        this._ttsCtx = null;       // persistent AudioContext for TTS
-        this._elevenSource = null; // AudioBufferSourceNode for ElevenLabs
+        this._ttsCtx = null;
+        this._elevenSource = null;
+        this._elevenAudio = null;
 
         if (this.recognition) this._configureRecognition();
         this._loadVoices();
     }
 
-    // Call this once from a user-gesture handler to unlock audio on iOS Safari
+    // Call once from a user-gesture handler to unlock audio on iOS Safari
     unlockAudio() {
         if (this._ttsCtx) return;
         try {
             this._ttsCtx = new (window.AudioContext || window.webkitAudioContext)();
-            // Play a silent buffer to fully unlock the context
             const buf = this._ttsCtx.createBuffer(1, 1, 22050);
             const src = this._ttsCtx.createBufferSource();
             src.buffer = buf;
@@ -170,42 +171,75 @@ class JarvisSpeech {
     }
 
     async _speakElevenLabs(text, onDone) {
-        // Adam — multilingual, natural Italian pronunciation
-        const VOICE_ID = 'pNInz6obpgDQGcFmaJgB';
-        try {
-            const res = await fetch('https://api.elevenlabs.io/v1/text-to-speech/' + VOICE_ID, {
-                method: 'POST',
-                headers: {
-                    'Accept': 'audio/mpeg',
-                    'Content-Type': 'application/json',
-                    'xi-api-key': this.elevenLabsKey
-                },
-                body: JSON.stringify({
-                    text,
-                    model_id: 'eleven_multilingual_v2',
-                    voice_settings: { stability: 0.45, similarity_boost: 0.80, style: 0.15 }
-                })
-            });
-            if (!res.ok) throw new Error('ElevenLabs HTTP ' + res.status);
+        // Voice IDs to try in order (all on free ElevenLabs tier)
+        const VOICES = [
+            'onwK4e9ZLuTAKqWW03F9', // Daniel — deep, authoritative
+            'TxGEqnHWrfWFTfGW9XjX', // Josh — clear male
+            'ErXwobaYiN019PkySvjV', // Antoni
+            'pNInz6obpgDQGcFmaJgB', // Adam
+        ];
 
-            const arrayBuffer = await res.arrayBuffer();
+        for (const VOICE_ID of VOICES) {
+            try {
+                const res = await fetch('https://api.elevenlabs.io/v1/text-to-speech/' + VOICE_ID, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'audio/mpeg',
+                        'Content-Type': 'application/json',
+                        'xi-api-key': this.elevenLabsKey
+                    },
+                    body: JSON.stringify({
+                        text,
+                        model_id: 'eleven_multilingual_v2',
+                        voice_settings: { stability: 0.5, similarity_boost: 0.75 }
+                    })
+                });
 
-            // Use persistent TTS AudioContext (unlocked on user gesture) — required for iOS Safari
-            const ctx = this._ttsCtx;
-            if (!ctx) throw new Error('AudioContext not unlocked');
-            if (ctx.state === 'suspended') await ctx.resume();
+                if (!res.ok) {
+                    const errText = await res.text().catch(() => '');
+                    throw new Error('HTTP ' + res.status + ': ' + errText.slice(0, 100));
+                }
 
-            const decoded = await ctx.decodeAudioData(arrayBuffer.slice(0));
-            const source = ctx.createBufferSource();
-            source.buffer = decoded;
-            source.connect(ctx.destination);
-            source.onended = () => { this._elevenSource = null; if (onDone) onDone(); };
-            this._elevenSource = source;
-            source.start(0);
-        } catch (err) {
-            console.error('ElevenLabs error:', err);
-            this._speakWebSpeech(text, onDone);
+                const arrayBuffer = await res.arrayBuffer();
+
+                // Path 1: AudioContext (iOS Safari compatible)
+                if (this._ttsCtx) {
+                    try {
+                        if (this._ttsCtx.state === 'suspended') await this._ttsCtx.resume();
+                        const decoded = await this._ttsCtx.decodeAudioData(arrayBuffer.slice(0));
+                        const source  = this._ttsCtx.createBufferSource();
+                        source.buffer = decoded;
+                        source.connect(this._ttsCtx.destination);
+                        source.onended = () => { this._elevenSource = null; if (onDone) onDone(); };
+                        this._elevenSource = source;
+                        source.start(0);
+                        return; // success
+                    } catch (decErr) {
+                        console.warn('decodeAudioData failed, trying Audio element:', decErr);
+                    }
+                }
+
+                // Path 2: Audio element (Chrome / desktop fallback)
+                const blob  = new Blob([arrayBuffer], { type: 'audio/mpeg' });
+                const url   = URL.createObjectURL(blob);
+                const audio = new Audio(url);
+                this._elevenAudio = audio;
+                audio.onended = () => { URL.revokeObjectURL(url); this._elevenAudio = null; if (onDone) onDone(); };
+                audio.onerror = (e) => { URL.revokeObjectURL(url); this._elevenAudio = null; if (onDone) onDone(); };
+                await audio.play();
+                return; // success
+
+            } catch (err) {
+                console.error('ElevenLabs voice ' + VOICE_ID + ':', err.message);
+                // Report first error to UI for debugging
+                if (this.onElevenLabsError && VOICE_ID === VOICES[0]) {
+                    this.onElevenLabsError(err.message);
+                }
+            }
         }
+
+        // All voices failed
+        this._speakWebSpeech(text, onDone);
     }
 
     stopSpeaking() {
@@ -213,6 +247,10 @@ class JarvisSpeech {
         if (this._elevenSource) {
             try { this._elevenSource.stop(); } catch (_) {}
             this._elevenSource = null;
+        }
+        if (this._elevenAudio) {
+            this._elevenAudio.pause();
+            this._elevenAudio = null;
         }
     }
 }

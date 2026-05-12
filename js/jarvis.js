@@ -122,6 +122,11 @@ class JarvisApp {
                 this._setResponse('Accesso al microfono negato. Abilitalo nelle impostazioni di Safari.');
             }
         };
+        this.speech.onElevenLabsError = (msg) => {
+            console.error('ElevenLabs UI error:', msg);
+            // Show briefly in response area so user knows what failed
+            this._setResponse('ElevenLabs: ' + msg + ' — uso voce di sistema.');
+        };
     }
 
     async _initialize() {
