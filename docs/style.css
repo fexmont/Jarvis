@@ -131,6 +131,11 @@ a{color:inherit;text-decoration:none}
 @media(max-width:880px){.cards{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:560px){.cards{grid-template-columns:1fr}}
 
+/* ===== CUGINA ===== */
+.cugina{display:flex;align-items:center;gap:12px;margin:14px 0}
+.cugina img{width:60px;height:60px;border-radius:50%;object-fit:cover;border:2px solid var(--orange);flex:none}
+.cugina span{font-size:.88rem;color:var(--muted)}
+
 /* ===== VS ===== */
 .vs{display:flex;align-items:stretch;gap:10px;margin-top:20px}
 .vs-side{flex:1;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;text-align:center}
